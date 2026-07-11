@@ -4,6 +4,10 @@ Production-grade credit-card fraud detection: reproducible training pipeline wit
 experiment tracking, exported model served via FastAPI, containerised with Docker, and
 CI/CD through GitHub Actions publishing to GHCR.
 
+**🔴 Live demo:** [fraud-detect-it.streamlit.app](https://fraud-detect-it.streamlit.app) ·
+**API docs:** [fraud-detection-mlops-ozbd.onrender.com/docs](https://fraud-detection-mlops-ozbd.onrender.com/docs)
+*(free tier — first request after idle takes ~30s to wake)*
+
 > Portfolio project — phase 1 of 4 (training + serving + CI). Phases 2–4 add
 > Kubernetes deployment, monitoring/drift detection, and automated retraining.
 
