@@ -24,6 +24,73 @@ FEATURES = [f"V{i}" for i in range(1, 29)] + ["Amount"]
 
 st.set_page_config(page_title="Fraud Detection Demo", page_icon="🕵️", layout="wide")
 
+# ---------- styling ----------
+
+st.markdown(
+    """
+<style>
+/* metric cards */
+[data-testid="stMetric"] {
+    background: var(--secondary-background-color);
+    border: 1px solid rgba(128,128,128,0.2);
+    border-radius: 12px;
+    padding: 14px 18px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+[data-testid="stMetricLabel"] { opacity: 0.75; }
+
+/* hero banner */
+.hero {
+    background: linear-gradient(120deg, #0f2027 0%, #203a43 55%, #2c5364 100%);
+    border-radius: 16px;
+    padding: 28px 32px 24px;
+    margin-bottom: 8px;
+    color: white;
+}
+.hero h1 { color: white; font-size: 1.9rem; margin: 0 0 6px; }
+.hero p  { color: #cfe3ee; margin: 0 0 12px; font-size: 1.02rem; }
+.pill {
+    display: inline-block;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: #e8f1f7;
+    border-radius: 999px;
+    padding: 3px 12px;
+    margin: 2px 6px 2px 0;
+    font-size: 0.78rem;
+    letter-spacing: 0.3px;
+}
+
+/* tabs a bit bolder */
+button[data-baseweb="tab"] { font-size: 1rem; font-weight: 600; }
+
+/* primary button */
+div.stButton > button[kind="primary"], div.stButton > button[data-testid="baseButton-primary"] {
+    border-radius: 10px;
+    font-weight: 700;
+    padding: 0.6rem 1rem;
+}
+</style>
+""",
+    unsafe_allow_html=True,
+)
+
+st.markdown(
+    """
+<div class="hero">
+  <h1>🕵️ Real-Time Fraud Detection</h1>
+  <p>A production-grade ML system that scores card transactions in ~1 ms —
+  and knows when its own answers can't be trusted.</p>
+  <span class="pill">XGBoost</span><span class="pill">FastAPI</span>
+  <span class="pill">MLflow</span><span class="pill">Docker</span>
+  <span class="pill">Kubernetes</span><span class="pill">Terraform · AWS</span>
+  <span class="pill">Prometheus · Grafana</span><span class="pill">PSI drift detection</span>
+  <span class="pill">Shadow deployment</span>
+</div>
+""",
+    unsafe_allow_html=True,
+)
+
 
 # ---------- data helpers ----------
 
@@ -80,6 +147,17 @@ def scan(df: pd.DataFrame, base_url: str) -> pd.DataFrame:
     return out
 
 
+RESULT_COLUMN_CONFIG = {
+    "fraud_probability": st.column_config.ProgressColumn(
+        "Fraud probability", format="percent", min_value=0.0, max_value=1.0
+    ),
+    "Amount": st.column_config.NumberColumn("Amount", format="£%.2f"),
+    "transaction_id": st.column_config.TextColumn("Transaction"),
+    "verdict": st.column_config.TextColumn("Verdict"),
+    "actually_was": st.column_config.TextColumn("Actually was"),
+}
+
+
 # ---------- sidebar ----------
 
 st.sidebar.title("🕵️ Fraud Detection")
@@ -89,8 +167,9 @@ info = get_model_info(base_url)
 if info:
     st.sidebar.success("API connected ✅")
     m = info["metrics"]
-    st.sidebar.metric("Model PR-AUC", f"{m['pr_auc']:.3f}")
-    st.sidebar.metric("Recall @ threshold", f"{m['recall_at_threshold']:.1%}")
+    s1, s2 = st.sidebar.columns(2)
+    s1.metric("PR-AUC", f"{m['pr_auc']:.3f}")
+    s2.metric("Recall", f"{m['recall_at_threshold']:.0%}")
     st.sidebar.caption(f"Model run: `{info['run_id'][:12]}…`")
 else:
     st.sidebar.error("API not reachable - run `make serve` first")
@@ -105,12 +184,12 @@ st.sidebar.caption(
 # ---------- main ----------
 
 tab_batch, tab_score, tab_explain = st.tabs(
-    ["📄 Scan a batch file", "🔍 Score one transaction", "📚 How it all works"]
+    ["📄  Scan a batch file", "🔍  Score one transaction", "📚  How it all works"]
 )
 
 # ----- batch scan -----
 with tab_batch:
-    st.subheader("Scan a file of transactions - like a bank would")
+    st.subheader("Scan a file of transactions — like a bank would")
     st.write(
         "A payments team receives files with thousands of card transactions. "
         "Pick a sample file below (or upload your own), inspect it, then let "
@@ -156,13 +235,13 @@ with tab_batch:
         batch = make_batch(seed, n_legit, n_fraud, high_value)
 
     if batch is not None:
-        st.markdown(f"**The file** — {len(batch)} transactions, exactly as the model will receive them:")
-        st.dataframe(batch.drop(columns=["actual_fraud"], errors="ignore"), height=240)
-        st.download_button(
-            "⬇ Download this file (CSV)",
-            batch.to_csv(index=False),
-            file_name="transactions_batch.csv",
-        )
+        with st.expander(f"👀 Inspect the file — {len(batch)} transactions, exactly as the model receives them"):
+            st.dataframe(batch.drop(columns=["actual_fraud"], errors="ignore"), height=240)
+            st.download_button(
+                "⬇ Download this file (CSV)",
+                batch.to_csv(index=False),
+                file_name="transactions_batch.csv",
+            )
         st.caption(
             "Ground-truth labels are hidden from the model during the scan and "
             "only used afterwards to grade its answers."
@@ -176,7 +255,7 @@ with tab_batch:
             else:
                 flagged = results[results["fraud_probability"] >= 0.5]
                 c1, c2, c3, c4 = st.columns(4)
-                c1.metric("Transactions scanned", len(results))
+                c1.metric("Transactions scanned", f"{len(results):,}")
                 c2.metric("Flagged as fraud", len(flagged))
                 c3.metric("Money protected", f"£{flagged['Amount'].sum():,.0f}")
 
@@ -193,10 +272,11 @@ with tab_batch:
                     verdict_bits.append(
                         f"{false_alarms} false alarm(s) on {int((~truth).sum())} genuine payments"
                     )
-                    (st.success if missed == 0 else st.info)("The model " + ", ".join(verdict_bits) + ".")
+                    (st.success if missed == 0 else st.info)(
+                        "The model " + ", ".join(verdict_bits) + "."
+                    )
 
-                # --- data health check: does this file even look like the
-                #     data the model was trained on? ---
+                # --- data health check ---
                 if REFERENCE.exists():
                     ref = pd.read_parquet(REFERENCE)
                     dr = drift_report(ref, results[FEATURES])
@@ -220,7 +300,7 @@ with tab_batch:
                             "scores can be trusted."
                         )
 
-                st.markdown("**Scan results** (most suspicious first):")
+                st.markdown("#### Scan results — most suspicious first")
                 show = results.sort_values("fraud_probability", ascending=False)
                 cols = ["transaction_id"] if "transaction_id" in show.columns else []
                 cols += ["Amount", "fraud_probability", "verdict"]
@@ -228,8 +308,10 @@ with tab_batch:
                     show["actually_was"] = show["actual_fraud"].map({1: "FRAUD", 0: "genuine"})
                     cols += ["actually_was"]
                 st.dataframe(
-                    show[cols].style.format({"Amount": "£{:.2f}", "fraud_probability": "{:.1%}"}),
-                    height=400,
+                    show[cols],
+                    column_config=RESULT_COLUMN_CONFIG,
+                    height=420,
+                    hide_index=True,
                 )
 
 # ----- single transaction -----
@@ -323,6 +405,8 @@ fraud rate) and **Grafana** charts them. Every prediction is logged.
 **5 — Drift detection.** Fraud patterns change. The system compares live
 traffic against the training data using **PSI** (the metric banks use) and
 raises an alarm when the world has shifted from what the model learned.
+You can see this live: upload a foreign dataset in the scan tab and watch
+the data health check fire.
 
 **6 — Safe retraining.** On drift, a *challenger* model is trained. It shadows
 production - scoring real traffic silently while the *champion* still makes
