@@ -79,10 +79,17 @@ def predict(txn: Transaction) -> PredictionResponse:
 
     meta = _state["metadata"]
     features = meta["features"]
+    start = time.perf_counter()
     row = np.array([[getattr(txn, f) for f in features]], dtype=np.float32)
     dmatrix = xgb.DMatrix(row, feature_names=features)
     proba = float(_state["booster"].predict(dmatrix)[0])
+    latency = time.perf_counter() - start
     threshold = float(meta["threshold"])
+
+    monitoring.observe(proba, proba >= threshold, latency)
+    monitoring.log_prediction(
+        {f: getattr(txn, f) for f in features}, proba, proba >= threshold
+    )
 
     return PredictionResponse(
         fraud_probability=proba,

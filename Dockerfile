@@ -7,7 +7,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 # Install only serving dependencies (no mlflow/sklearn needed at inference).
 RUN pip install --no-cache-dir \
     "fastapi>=0.111" "uvicorn[standard]>=0.30" "pydantic>=2.7" \
-    "xgboost>=2.0" "numpy>=1.26" "PyYAML>=6.0"
+    "xgboost>=2.0" "numpy>=1.26" "PyYAML>=6.0" "prometheus-client>=0.20"
 
 COPY src/ src/
 RUN pip install --no-cache-dir --no-deps -e . 2>/dev/null || true

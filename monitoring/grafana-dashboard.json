@@ -1,0 +1,73 @@
+{
+  "annotations": { "list": [] },
+  "title": "Fraud Detection API",
+  "uid": "fraud-api",
+  "timezone": "browser",
+  "refresh": "5s",
+  "time": { "from": "now-15m", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Predictions / sec by decision",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum by (decision) (rate(fraud_predictions_total[1m]))",
+          "legendFormat": "{{decision}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Fraud rate (flagged / total)",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(fraud_predictions_total{decision=\"fraud\"}[5m])) / sum(rate(fraud_predictions_total[5m]))"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit", "decimals": 2 } }
+    },
+    {
+      "id": 3,
+      "title": "p95 inference latency",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 0 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(fraud_request_latency_seconds_bucket[5m])))"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s", "decimals": 4 } }
+    },
+    {
+      "id": 4,
+      "title": "Mean predicted fraud probability (score drift signal)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "rate(fraud_probability_sum[5m]) / rate(fraud_probability_count[5m])",
+          "legendFormat": "mean probability"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Probability distribution (heatmap)",
+      "type": "heatmap",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum by (le) (rate(fraud_probability_bucket[1m]))",
+          "format": "heatmap",
+          "legendFormat": "{{le}}"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "version": 1
+}

@@ -105,10 +105,36 @@ Production touches baked in: liveness/readiness probes on `/health`, resource
 requests/limits, HPA (2-5 replicas at 70% CPU, backed by metrics-server),
 single-NAT VPC to halve networking cost.
 
+## Monitoring & drift detection
+
+The API exposes Prometheus metrics at `/metrics` (prediction volume by
+decision, score distribution histogram, p95 inference latency) and, with
+`PRED_LOG_DIR` set, logs every prediction as JSONL for offline analysis.
+
+Drift is measured with **Population Stability Index (PSI)** — the standard
+metric in credit/fraud risk — implemented from scratch in
+`src/fraud_detection/drift.py` (quantile-binned against a 10k reference
+sample exported at training time; warn > 0.10, drift > 0.25). The CLI exits
+non-zero on drift, so it can gate a retraining job in CI/cron.
+
+**Demo flow:**
+
+```bash
+make serve            # terminal 1: API with prediction logging on
+make monitor-up       # Prometheus :9090 + Grafana :3000 (dashboard auto-provisioned)
+make clean-logs && make simulate    # terminal 2: 300 transactions sampled from
+make drift-report                   #   the reference sample -> all "ok"
+make clean-logs && make simulate-drift   # V1/V3/V14/Amount shifted
+make drift-report                   # -> exactly those features flagged, exit 1
+```
+
+Watch the Grafana dashboard while simulating: predictions/sec, flagged-fraud
+rate, latency, and the score heatmap shifting in real time.
+
 ## Roadmap
 
 - [x] Phase 1 — training pipeline, MLflow tracking, FastAPI serving, Docker, CI
 - [x] Phase 2 — Kubernetes (k3d + AWS EKS), Terraform IaC
-- [ ] Phase 3 — monitoring: Evidently drift detection + Grafana dashboard
+- [x] Phase 3 — Prometheus/Grafana monitoring, PSI drift detection, prediction logging
 - [ ] Phase 4 — automated retraining triggers + shadow deployment
 # fraud-detection-mlops

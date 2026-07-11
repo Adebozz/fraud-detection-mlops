@@ -73,6 +73,10 @@ def train(cfg: Config, synthetic: bool = False) -> dict[str, float]:
         model_dir = Path(cfg.serving.model_dir)
         model_dir.mkdir(parents=True, exist_ok=True)
         model.get_booster().save_model(model_dir / "model.json")
+        # Reference sample for drift detection (PSI baseline).
+        x_train.sample(min(10_000, len(x_train)), random_state=42).to_parquet(
+            model_dir / "reference_sample.parquet"
+        )
         (model_dir / "metadata.json").write_text(
             json.dumps(
                 {

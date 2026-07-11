@@ -19,7 +19,26 @@ train-synthetic:
 	python -m fraud_detection.train --synthetic
 
 serve:
-	uvicorn fraud_detection.api.main:app --host 0.0.0.0 --port 8000 --reload
+	PRED_LOG_DIR=logs uvicorn fraud_detection.api.main:app --host 0.0.0.0 --port 8000 --reload
+
+clean-logs:
+	rm -rf logs
+
+simulate:
+	python scripts/simulate_traffic.py --n 300
+
+simulate-drift:
+	python scripts/simulate_traffic.py --n 300 --drift
+
+drift-report:
+	python -m fraud_detection.drift
+
+monitor-up:
+	docker compose up -d prometheus grafana
+	@echo "Grafana: http://localhost:3000 (dashboard: Fraud Detection API)"
+
+monitor-down:
+	docker compose down
 
 mlflow-ui:
 	mlflow ui --backend-store-uri sqlite:///mlflow.db

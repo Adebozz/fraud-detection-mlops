@@ -1,0 +1,9 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: fraud-api
+    metrics_path: /metrics/
+    static_configs:
+      # host.docker.internal reaches the uvicorn/k8s-port-forward on the host
+      - targets: ["host.docker.internal:8000"]
