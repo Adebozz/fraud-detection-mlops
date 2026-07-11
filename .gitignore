@@ -15,6 +15,7 @@ mlartifacts/
 mlflow.db
 mlflow-store/
 logs/
+samples/
 
 # Tooling
 .pytest_cache/

@@ -8,13 +8,18 @@ for demos and for explaining the project to non-technical audiences.
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import httpx
 import pandas as pd
 import streamlit as st
 
+sys.path.insert(0, "src")
+from fraud_detection.drift import DRIFT_THRESHOLD, drift_report  # noqa: E402
+
 RAW_DATA = Path("data/raw/creditcard.parquet")
+REFERENCE = Path("models/reference_sample.parquet")
 FEATURES = [f"V{i}" for i in range(1, 29)] + ["Amount"]
 
 st.set_page_config(page_title="Fraud Detection Demo", page_icon="🕵️", layout="wide")
@@ -133,10 +138,19 @@ with tab_batch:
         )
         if up is not None:
             batch = pd.read_csv(up)
+            # tolerate common label-column names from other datasets
+            batch = batch.rename(columns={"Class": "actual_fraud", "class": "actual_fraud"})
             missing = set(FEATURES) - set(batch.columns)
             if missing:
                 st.error(f"Missing columns: {sorted(missing)}")
                 batch = None
+            elif len(batch) > 2_000:
+                st.info(
+                    f"File has {len(batch):,} rows - scanning one HTTP call at a "
+                    "time would take a while, so we scan a random sample."
+                )
+                n = st.slider("Rows to scan", 200, 5_000, 1_000, step=100)
+                batch = batch.sample(n, random_state=42).reset_index(drop=True)
     else:
         seed, n_legit, n_fraud, high_value = SAMPLES[choice]
         batch = make_batch(seed, n_legit, n_fraud, high_value)
@@ -180,6 +194,31 @@ with tab_batch:
                         f"{false_alarms} false alarm(s) on {int((~truth).sum())} genuine payments"
                     )
                     (st.success if missed == 0 else st.info)("The model " + ", ".join(verdict_bits) + ".")
+
+                # --- data health check: does this file even look like the
+                #     data the model was trained on? ---
+                if REFERENCE.exists():
+                    ref = pd.read_parquet(REFERENCE)
+                    dr = drift_report(ref, results[FEATURES])
+                    n_drifted = int((dr["status"] == "drift").sum())
+                    if n_drifted > 0:
+                        worst = ", ".join(dr.head(5)["feature"])
+                        st.warning(
+                            f"⚠️ **Data health check: {n_drifted} of {len(dr)} features "
+                            f"have drifted** beyond the PSI threshold ({DRIFT_THRESHOLD}) "
+                            f"vs the training data (worst: {worst}). This file does not "
+                            "look like what the model learned from - its predictions "
+                            "here are unreliable, whatever they say. In production this "
+                            "alarm would trigger the automated retraining pipeline."
+                        )
+                        with st.expander("Per-feature drift (PSI) details"):
+                            st.dataframe(dr, height=300)
+                    else:
+                        st.success(
+                            "✅ Data health check: no feature drift vs training data - "
+                            "this file looks like what the model was trained on, so its "
+                            "scores can be trusted."
+                        )
 
                 st.markdown("**Scan results** (most suspicious first):")
                 show = results.sort_values("fraud_probability", ascending=False)

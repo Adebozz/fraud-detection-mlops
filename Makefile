@@ -49,6 +49,9 @@ promote:
 demo:
 	streamlit run app/demo.py
 
+export-holdout:
+	python scripts/export_holdout.py
+
 monitor-up:
 	docker compose up -d prometheus grafana
 	@echo "Grafana: http://localhost:3000 (dashboard: Fraud Detection API)"
