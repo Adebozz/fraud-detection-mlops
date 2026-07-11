@@ -33,6 +33,19 @@ simulate-drift:
 drift-report:
 	python -m fraud_detection.drift
 
+retrain:
+	python -m fraud_detection.retrain
+
+retrain-if-drift:
+	python -m fraud_detection.drift || python -m fraud_detection.retrain
+
+serve-shadow:
+	PRED_LOG_DIR=logs SHADOW_MODEL_DIR=models/shadow \
+		uvicorn fraud_detection.api.main:app --host 0.0.0.0 --port 8000 --reload
+
+promote:
+	python -m fraud_detection.retrain --promote
+
 monitor-up:
 	docker compose up -d prometheus grafana
 	@echo "Grafana: http://localhost:3000 (dashboard: Fraud Detection API)"

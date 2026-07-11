@@ -55,12 +55,15 @@ curl -X POST http://localhost:8000/predict \
 
 Held-out test set (20%, stratified), 284,807 transactions, 0.17% fraud:
 
-| Metric | Value |
-|---|---|
-| ROC-AUC | 0.973 |
-| PR-AUC | 0.880 |
-| Precision @ 0.5 | 0.882 |
-| Recall @ 0.5 | 0.837 |
+| Metric | v1 (400 trees, lr 0.1) | v2 — promoted via champion/challenger (800 trees, lr 0.05) |
+|---|---|---|
+| ROC-AUC | 0.973 | 0.980 |
+| PR-AUC | 0.880 | 0.882 |
+| Precision @ 0.5 | 0.882 | 0.872 |
+| Recall @ 0.5 | 0.837 | 0.837 |
+
+v2 was trained as a challenger, evaluated in shadow mode against live traffic,
+and promoted through the automated gate (`retrain.py`) after beating v1 on PR-AUC.
 
 At the default threshold the model catches ~84% of fraud while ~88% of its
 alerts are true fraud — i.e. roughly 1 false alarm per 7 flagged transactions
@@ -131,10 +134,28 @@ make drift-report                   # -> exactly those features flagged, exit 1
 Watch the Grafana dashboard while simulating: predictions/sec, flagged-fraud
 rate, latency, and the score heatmap shifting in real time.
 
+## Retraining & shadow deployment
+
+Champion/challenger workflow (`src/fraud_detection/retrain.py`):
+
+```bash
+make retrain-if-drift   # drift gate: only retrains when PSI exceeds threshold
+make serve-shadow       # champion serves responses; challenger scores silently
+make simulate           # Grafana: "champion vs shadow" + disagreement rate
+make promote            # replaces champion only if challenger wins on PR-AUC
+```
+
+The challenger is staged to `models/shadow/`, never straight to production.
+In shadow mode the API scores every request with both models but responds
+with the champion only — disagreement rate and score-distribution deltas are
+exported to Prometheus, so promotion is a data-driven decision. A scheduled
+GitHub Actions workflow (`retrain.yml`) runs the same pipeline weekly and
+uploads the challenger as an artifact.
+
 ## Roadmap
 
 - [x] Phase 1 — training pipeline, MLflow tracking, FastAPI serving, Docker, CI
 - [x] Phase 2 — Kubernetes (k3d + AWS EKS), Terraform IaC
 - [x] Phase 3 — Prometheus/Grafana monitoring, PSI drift detection, prediction logging
-- [ ] Phase 4 — automated retraining triggers + shadow deployment
+- [x] Phase 4 — drift-gated retraining, champion/challenger promotion, shadow deployment
 # fraud-detection-mlops

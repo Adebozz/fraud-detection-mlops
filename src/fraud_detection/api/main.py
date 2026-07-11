@@ -28,27 +28,35 @@ from fraud_detection.api.schemas import HealthResponse, PredictionResponse, Tran
 
 logger = logging.getLogger(__name__)
 
-_state: dict = {"booster": None, "metadata": None}
+_state: dict = {"booster": None, "metadata": None, "shadow": None}
 
 
-def _load_model(model_dir: Path) -> None:
+def _load_booster(model_dir: Path) -> tuple[xgb.Booster, dict]:
     booster = xgb.Booster()
     booster.load_model(str(model_dir / "model.json"))
     metadata = json.loads((model_dir / "metadata.json").read_text())
-    _state["booster"] = booster
-    _state["metadata"] = metadata
-    logger.info("Loaded model run %s from %s", metadata.get("run_id"), model_dir)
+    return booster, metadata
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     model_dir = Path(os.environ.get("MODEL_DIR", "models"))
     try:
-        _load_model(model_dir)
+        _state["booster"], _state["metadata"] = _load_booster(model_dir)
+        logger.info("Loaded champion run %s from %s", _state["metadata"].get("run_id"), model_dir)
     except FileNotFoundError:
         logger.warning("No model found in %s - /predict will return 503", model_dir)
+
+    shadow_dir = os.environ.get("SHADOW_MODEL_DIR")
+    if shadow_dir:
+        try:
+            _state["shadow"], shadow_meta = _load_booster(Path(shadow_dir))
+            logger.info("Shadow mode ON: challenger run %s", shadow_meta.get("run_id"))
+        except FileNotFoundError:
+            logger.warning("SHADOW_MODEL_DIR=%s set but no model found", shadow_dir)
+
     yield
-    _state["booster"] = None
+    _state["booster"] = _state["shadow"] = None
 
 
 app = FastAPI(title="Fraud Detection API", version="0.1.0", lifespan=lifespan)
@@ -87,8 +95,15 @@ def predict(txn: Transaction) -> PredictionResponse:
     threshold = float(meta["threshold"])
 
     monitoring.observe(proba, proba >= threshold, latency)
+
+    # Shadow (challenger) scores the same request; response stays champion-only.
+    shadow_proba = None
+    if _state["shadow"] is not None:
+        shadow_proba = float(_state["shadow"].predict(dmatrix)[0])
+        monitoring.observe_shadow(shadow_proba, proba >= threshold, shadow_proba >= threshold)
+
     monitoring.log_prediction(
-        {f: getattr(txn, f) for f in features}, proba, proba >= threshold
+        {f: getattr(txn, f) for f in features}, proba, proba >= threshold, shadow_proba
     )
 
     return PredictionResponse(

@@ -1,0 +1,40 @@
+# Scheduled retraining: trains a challenger and uploads it as an artifact.
+# In production this job would (a) read prediction logs from S3, (b) run the
+# drift gate first, and (c) push the challenger to the model registry for a
+# shadow rollout. Here it demonstrates the automation skeleton on CI.
+name: Retrain
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # Mondays 06:00 UTC
+  workflow_dispatch:
+    inputs:
+      synthetic:
+        description: "Use synthetic data (fast)"
+        type: boolean
+        default: true
+
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install
+        run: pip install -e .
+      - name: Train challenger
+        run: |
+          if [ "${{ inputs.synthetic || 'true' }}" = "true" ]; then
+            python -m fraud_detection.retrain --synthetic
+          else
+            python -m fraud_detection.retrain
+          fi
+      - name: Upload challenger artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: challenger-model
+          path: models/shadow/
+          retention-days: 30

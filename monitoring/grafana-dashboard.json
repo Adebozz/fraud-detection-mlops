@@ -55,6 +55,34 @@
       ]
     },
     {
+      "id": 6,
+      "title": "Champion vs shadow mean score",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "expr": "rate(fraud_probability_sum[5m]) / rate(fraud_probability_count[5m])",
+          "legendFormat": "champion"
+        },
+        {
+          "expr": "rate(fraud_shadow_probability_sum[5m]) / rate(fraud_shadow_probability_count[5m])",
+          "legendFormat": "shadow"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Shadow disagreement rate",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "targets": [
+        {
+          "expr": "sum(rate(fraud_shadow_disagreements_total[5m])) / sum(rate(fraud_predictions_total[5m]))"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit", "decimals": 2 } }
+    },
+    {
       "id": 5,
       "title": "Probability distribution (heatmap)",
       "type": "heatmap",

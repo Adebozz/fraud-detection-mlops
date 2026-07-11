@@ -42,7 +42,9 @@ def evaluate(model: XGBClassifier, x_test, y_test, threshold: float) -> dict[str
     }
 
 
-def train(cfg: Config, synthetic: bool = False) -> dict[str, float]:
+def train(cfg: Config, synthetic: bool = False, out_dir: str | None = None) -> dict[str, float]:
+    """Train and export a model. `out_dir` overrides the export location
+    (used by retraining to stage a challenger without touching the champion)."""
     x, y = load_dataset(cfg.data.openml_id, cfg.data.raw_path, synthetic=synthetic)
     x_train, x_test, y_train, y_test = train_test_split(
         x, y, test_size=cfg.data.test_size, stratify=y, random_state=cfg.data.random_state
@@ -70,7 +72,7 @@ def train(cfg: Config, synthetic: bool = False) -> dict[str, float]:
         )
 
         # Export a serving copy: plain XGBoost JSON + metadata (no MLflow needed at inference).
-        model_dir = Path(cfg.serving.model_dir)
+        model_dir = Path(out_dir or cfg.serving.model_dir)
         model_dir.mkdir(parents=True, exist_ok=True)
         model.get_booster().save_model(model_dir / "model.json")
         # Reference sample for drift detection (PSI baseline).
