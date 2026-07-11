@@ -25,6 +25,7 @@ dev = [
     "pytest>=8.0",
     "httpx>=0.27",
     "ruff>=0.5",
+    "streamlit>=1.36",
 ]
 
 [tool.setuptools.packages.find]

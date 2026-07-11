@@ -46,6 +46,9 @@ serve-shadow:
 promote:
 	python -m fraud_detection.retrain --promote
 
+demo:
+	streamlit run app/demo.py
+
 monitor-up:
 	docker compose up -d prometheus grafana
 	@echo "Grafana: http://localhost:3000 (dashboard: Fraud Detection API)"

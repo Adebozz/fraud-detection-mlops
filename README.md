@@ -43,6 +43,10 @@ make serve              # API at http://localhost:8000/docs
 make test               # pytest suite
 ```
 
+**Demo UI:** `make demo` opens a Streamlit page (with the API running) where
+you can score real legitimate/fraudulent transactions with one click — built
+for showing the system to non-technical audiences.
+
 Example request:
 
 ```bash
