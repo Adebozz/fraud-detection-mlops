@@ -2,7 +2,7 @@
 
 from pydantic import BaseModel, Field, create_model
 
-from fraud_detection.data import FEATURE_COLUMNS
+from fraud_detection.features import FEATURE_COLUMNS
 
 # Build the transaction schema dynamically from the canonical feature list
 # so API and training can never drift apart.

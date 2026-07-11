@@ -1,0 +1,19 @@
+# AWS EKS: pulls the CI-built image from GHCR and exposes it via an NLB.
+# NOTE: make the GHCR package public (repo -> Packages -> settings), or add
+# an imagePullSecret here if you keep it private.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+images:
+  - name: fraud-api
+    newName: ghcr.io/adebozz/fraud-detection-mlops
+    newTag: latest
+patches:
+  - patch: |-
+      - op: replace
+        path: /spec/type
+        value: LoadBalancer
+    target:
+      kind: Service
+      name: fraud-api

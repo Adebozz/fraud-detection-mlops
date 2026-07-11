@@ -15,11 +15,15 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import time
+
 import numpy as np
 import xgboost as xgb
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import RedirectResponse
+from prometheus_client import make_asgi_app
 
+from fraud_detection.api import monitoring
 from fraud_detection.api.schemas import HealthResponse, PredictionResponse, Transaction
 
 logger = logging.getLogger(__name__)
@@ -48,6 +52,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Fraud Detection API", version="0.1.0", lifespan=lifespan)
+app.mount("/metrics", make_asgi_app())
 
 
 @app.get("/", include_in_schema=False)

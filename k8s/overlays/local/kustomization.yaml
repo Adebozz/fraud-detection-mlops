@@ -1,0 +1,17 @@
+# Local k3d: image is imported directly into the cluster, never pulled.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+images:
+  - name: fraud-api
+    newName: fraud-api
+    newTag: local
+patches:
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: Never
+    target:
+      kind: Deployment
+      name: fraud-api

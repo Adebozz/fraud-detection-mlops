@@ -15,10 +15,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-logger = logging.getLogger(__name__)
+from fraud_detection.features import FEATURE_COLUMNS, TARGET_COLUMN  # noqa: F401 (re-export)
 
-FEATURE_COLUMNS = [*[f"V{i}" for i in range(1, 29)], "Amount"]
-TARGET_COLUMN = "Class"
+logger = logging.getLogger(__name__)
 
 
 def download_openml(openml_id: int, out_path: str | Path) -> pd.DataFrame:

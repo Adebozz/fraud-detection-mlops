@@ -79,10 +79,36 @@ precision/recall trade-offs are what a fraud team actually operates on.
   `FEATURE_COLUMNS` list used in training — schema drift between train and serve is impossible.
 - **Synthetic data path** (`--synthetic`) lets CI smoke-train the full pipeline in seconds.
 
+## Kubernetes deployment
+
+Manifests live in `k8s/` (Kustomize: shared `base`, `local`/`aws` overlays);
+infra in `terraform/` (VPC + EKS, eu-west-2).
+
+**Local (free), needs Docker + k3d + kubectl:**
+
+```bash
+make k3d-up          # create local cluster
+make k3d-deploy      # build image, import, deploy, wait for rollout
+kubectl port-forward svc/fraud-api 8000:80   # then open http://localhost:8000/docs
+make k3d-down        # tear down
+```
+
+**AWS EKS (~£3-4/day while running — always destroy after demos):**
+
+```bash
+make eks-up          # terraform apply (~15 min) + kubeconfig
+make eks-deploy      # deploy GHCR image, prints the load-balancer URL
+make eks-down        # terraform destroy - do not skip this
+```
+
+Production touches baked in: liveness/readiness probes on `/health`, resource
+requests/limits, HPA (2-5 replicas at 70% CPU, backed by metrics-server),
+single-NAT VPC to halve networking cost.
+
 ## Roadmap
 
 - [x] Phase 1 — training pipeline, MLflow tracking, FastAPI serving, Docker, CI
-- [ ] Phase 2 — deploy to Kubernetes (k3s → AWS EKS), Terraform IaC
+- [x] Phase 2 — Kubernetes (k3d + AWS EKS), Terraform IaC
 - [ ] Phase 3 — monitoring: Evidently drift detection + Grafana dashboard
 - [ ] Phase 4 — automated retraining triggers + shadow deployment
 # fraud-detection-mlops
