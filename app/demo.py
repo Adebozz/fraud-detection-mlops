@@ -8,6 +8,7 @@ for demos and for explaining the project to non-technical audiences.
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -96,10 +97,17 @@ st.markdown(
 
 @st.cache_data
 def load_split() -> tuple[pd.DataFrame | None, pd.DataFrame | None]:
-    """(legit, fraud) rows from the real dataset if cached locally."""
-    if not RAW_DATA.exists():
-        return None, None
-    df = pd.read_parquet(RAW_DATA)
+    """(legit, fraud) rows - full dataset locally, committed demo CSVs in the cloud."""
+    if RAW_DATA.exists():
+        df = pd.read_parquet(RAW_DATA)
+    else:
+        files = sorted(Path("samples").glob("demo_batch_*.csv"))
+        if not files:
+            return None, None
+        df = pd.concat([pd.read_csv(f) for f in files], ignore_index=True)
+        df = df.rename(columns={"actual_fraud": "Class"}).drop(
+            columns=["transaction_id"], errors="ignore"
+        )
     return df[df["Class"] == 0], df[df["Class"] == 1]
 
 
@@ -161,7 +169,9 @@ RESULT_COLUMN_CONFIG = {
 # ---------- sidebar ----------
 
 st.sidebar.title("🕵️ Fraud Detection")
-base_url = st.sidebar.text_input("API URL", "http://localhost:8000")
+base_url = st.sidebar.text_input(
+    "API URL", os.environ.get("FRAUD_API_URL", "http://localhost:8000")
+)
 
 info = get_model_info(base_url)
 if info:
@@ -198,7 +208,10 @@ with tab_batch:
 
     legit_df, _ = load_split()
     if legit_df is None:
-        st.warning("Dataset not cached yet - run `make train` once, then reload.")
+        st.warning(
+            "No data available - run `make train` (full dataset) or "
+            "`python scripts/export_demo_assets.py` (demo samples), then reload."
+        )
         st.stop()
 
     SAMPLES = {

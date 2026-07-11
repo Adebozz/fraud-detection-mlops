@@ -1,0 +1,11 @@
+# Render blueprint: deploys the fraud-detection API from the Dockerfile.
+# In Render: New + -> Blueprint -> connect this repo.
+services:
+  - type: web
+    name: fraud-detection-api
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: MODEL_DIR
+        value: /app/models

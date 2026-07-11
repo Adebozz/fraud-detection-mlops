@@ -22,4 +22,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=3s CMD python -c \
     "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
 
-CMD ["uvicorn", "fraud_detection.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Shell form so $PORT is honoured on platforms like Render (defaults to 8000)
+CMD uvicorn fraud_detection.api.main:app --host 0.0.0.0 --port ${PORT:-8000}

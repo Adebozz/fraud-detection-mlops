@@ -1,0 +1,43 @@
+{
+  "run_id": "042fdeacd7734d31939bf90bfa83ddd5",
+  "features": [
+    "V1",
+    "V2",
+    "V3",
+    "V4",
+    "V5",
+    "V6",
+    "V7",
+    "V8",
+    "V9",
+    "V10",
+    "V11",
+    "V12",
+    "V13",
+    "V14",
+    "V15",
+    "V16",
+    "V17",
+    "V18",
+    "V19",
+    "V20",
+    "V21",
+    "V22",
+    "V23",
+    "V24",
+    "V25",
+    "V26",
+    "V27",
+    "V28",
+    "Amount"
+  ],
+  "threshold": 0.5,
+  "metrics": {
+    "roc_auc": 0.9798558034637603,
+    "pr_auc": 0.8817407317912238,
+    "precision_at_threshold": 0.8723404255319149,
+    "recall_at_threshold": 0.8367346938775511,
+    "fraud_rate_test": 0.0017204452090867595
+  },
+  "synthetic_data": false
+}

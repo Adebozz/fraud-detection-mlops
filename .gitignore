@@ -9,13 +9,24 @@ build/
 
 # Data & models (tracked via MLflow / DVC, not git)
 data/
-models/
 mlruns/
 mlartifacts/
 mlflow.db
 mlflow-store/
 logs/
-samples/
+
+# Model dir: ignore everything except the small artefacts needed for
+# cloud deployment (Render builds the Docker image from this repo)
+models/*
+!models/model.json
+!models/metadata.json
+!models/reference_sample.parquet
+
+# Holdout exports stay local; committed demo batches are allowed
+samples/*
+!samples/demo_batch_a.csv
+!samples/demo_batch_b.csv
+!samples/demo_batch_c.csv
 
 # Tooling
 .pytest_cache/
