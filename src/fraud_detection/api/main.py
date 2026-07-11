@@ -18,6 +18,7 @@ from pathlib import Path
 import numpy as np
 import xgboost as xgb
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import RedirectResponse
 
 from fraud_detection.api.schemas import HealthResponse, PredictionResponse, Transaction
 
@@ -47,6 +48,11 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Fraud Detection API", version="0.1.0", lifespan=lifespan)
+
+
+@app.get("/", include_in_schema=False)
+def root() -> RedirectResponse:
+    return RedirectResponse(url="/docs")
 
 
 @app.get("/health", response_model=HealthResponse)
