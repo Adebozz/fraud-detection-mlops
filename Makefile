@@ -49,6 +49,9 @@ promote:
 demo:
 	streamlit run app/demo.py
 
+benchmark:
+	python scripts/benchmark_latency.py --n 2000
+
 export-holdout:
 	python scripts/export_holdout.py
 

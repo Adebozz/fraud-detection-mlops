@@ -80,8 +80,8 @@ st.markdown(
     """
 <div class="hero">
   <h1>🕵️ Real-Time Fraud Detection</h1>
-  <p>A production-grade ML system that scores card transactions in ~1 ms —
-  and knows when its own answers can't be trusted.</p>
+  <p>An end-to-end ML system for scoring card transactions that monitors
+  when its own answers can't be trusted.</p>
   <span class="pill">XGBoost</span><span class="pill">FastAPI</span>
   <span class="pill">MLflow</span><span class="pill">Docker</span>
   <span class="pill">Kubernetes</span><span class="pill">Terraform · AWS</span>
@@ -405,9 +405,10 @@ transactions, of which only 0.17% are fraud. Every experiment is tracked in
 
 **2 — Serving.** The trained model sits behind a **FastAPI** web service.
 Anything that can make an HTTP request (this page, a payment system) can ask
-it for a score. Typical answer time: ~1 ms.
+it for a score. Scoring takes about 1 ms when benchmarked locally; this hosted
+demo also includes network time.
 
-**3 — Deployment.** The service is packaged with **Docker** and runs on
+**3 — Deployment.** The service is packaged with **Docker** and has manifests for
 **Kubernetes**: 2+ copies for reliability, self-healing if one crashes,
 auto-scaling under load. **Terraform** scripts can recreate the whole AWS
 setup from scratch. **GitHub Actions** tests and ships every code change.

@@ -1,15 +1,15 @@
 # Fraud Detection — End-to-End MLOps Pipeline
 
-Production-grade credit-card fraud detection: reproducible training pipeline with MLflow
-experiment tracking, exported model served via FastAPI, containerised with Docker, and
-CI/CD through GitHub Actions publishing to GHCR.
+Credit-card fraud detection from training to monitoring: reproducible training pipeline with
+MLflow experiment tracking, exported model served via FastAPI, containerised with Docker,
+CI/CD through GitHub Actions publishing to GHCR, drift detection and champion/challenger retraining.
 
 **🔴 Live demo:** [fraud-detect-it.streamlit.app](https://fraud-detect-it.streamlit.app) ·
 **API docs:** [fraud-detection-mlops-ozbd.onrender.com/docs](https://fraud-detection-mlops-ozbd.onrender.com/docs)
 *(free tier — first request after idle takes ~30s to wake)*
 
-> Portfolio project — phase 1 of 4 (training + serving + CI). Phases 2–4 add
-> Kubernetes deployment, monitoring/drift detection, and automated retraining.
+> Portfolio project. The model is trained on real, anonymised transactions, but the
+> service has no real users: all traffic in the monitoring and shadow demos is simulated.
 
 ## Architecture
 
@@ -70,7 +70,7 @@ Held-out test set (20%, stratified), 284,807 transactions, 0.17% fraud:
 | Precision @ 0.5 | 0.882 | 0.872 |
 | Recall @ 0.5 | 0.837 | 0.837 |
 
-v2 was trained as a challenger, evaluated in shadow mode against live traffic,
+v2 was trained as a challenger, evaluated in shadow mode against simulated traffic,
 and promoted through the automated gate (`retrain.py`) after beating v1 on PR-AUC.
 
 At the default threshold the model catches ~84% of fraud while ~88% of its
@@ -79,6 +79,19 @@ on a base rate of 1-in-580.
 
 PR-AUC is the headline metric: with 0.17% positives, ROC-AUC is inflated and
 precision/recall trade-offs are what a fraud team actually operates on.
+
+### Latency
+
+Measured with `make benchmark`: 2,000 rows from the reference sample, sent one at a time,
+three runs, on an Apple M4 with the API running locally and prediction logging off.
+
+| | p50 | p95 | p99 |
+|---|---|---|---|
+| Model only | 0.19 ms | 0.22–0.24 ms | 0.43–0.48 ms |
+| Full HTTP request | 0.67 ms | 0.92–0.94 ms | 1.10–1.12 ms |
+
+These are best-case numbers from one machine with no concurrent load. A hosted API adds
+network time, and the first request after the free tier sleeps takes about 30 seconds.
 
 ## Design decisions
 
@@ -112,7 +125,7 @@ make eks-deploy      # deploy GHCR image, prints the load-balancer URL
 make eks-down        # terraform destroy - do not skip this
 ```
 
-Production touches baked in: liveness/readiness probes on `/health`, resource
+Operational details included: liveness/readiness probes on `/health`, resource
 requests/limits, HPA (2-5 replicas at 70% CPU, backed by metrics-server),
 single-NAT VPC to halve networking cost.
 
@@ -156,9 +169,12 @@ make promote            # replaces champion only if challenger wins on PR-AUC
 The challenger is staged to `models/shadow/`, never straight to production.
 In shadow mode the API scores every request with both models but responds
 with the champion only — disagreement rate and score-distribution deltas are
-exported to Prometheus, so promotion is a data-driven decision. A scheduled
-GitHub Actions workflow (`retrain.yml`) runs the same pipeline weekly and
-uploads the challenger as an artifact.
+exported to Prometheus, so promotion is a data-driven decision.
+
+A scheduled GitHub Actions workflow (`retrain.yml`) smoke-tests the retraining code weekly.
+It trains a challenger on synthetic data and uploads it as an artifact, without promoting
+it. GitHub disables schedules after 60 days without repository activity, so it may need
+re-enabling from the Actions tab.
 
 ## Roadmap
 
@@ -166,4 +182,3 @@ uploads the challenger as an artifact.
 - [x] Phase 2 — Kubernetes (k3d + AWS EKS), Terraform IaC
 - [x] Phase 3 — Prometheus/Grafana monitoring, PSI drift detection, prediction logging
 - [x] Phase 4 — drift-gated retraining, champion/challenger promotion, shadow deployment
-# fraud-detection-mlops
