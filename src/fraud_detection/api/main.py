@@ -12,10 +12,9 @@ from __future__ import annotations
 import json
 import logging
 import os
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
-
-import time
 
 import numpy as np
 import xgboost as xgb
