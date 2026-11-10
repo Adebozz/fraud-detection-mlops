@@ -186,9 +186,9 @@ else:
 
 st.sidebar.divider()
 st.sidebar.caption(
-    "This UI is a demo window onto a production ML system: "
-    "FastAPI model serving, Kubernetes deployment, Prometheus monitoring, "
-    "drift detection, and automated champion/challenger retraining."
+    "This UI is a demo window onto an end-to-end ML project: "
+    "FastAPI model serving, Kubernetes manifests, Prometheus monitoring, "
+    "drift detection, and champion/challenger retraining, tested with simulated traffic."
 )
 
 # ---------- main ----------
@@ -395,7 +395,7 @@ with tab_explain:
     st.subheader("The system behind this page")
     st.markdown(
         """
-**The one-liner:** this project is the *full production life* of a machine-learning
+**The one-liner:** this project covers the *full life* of a machine-learning
 model - not just training it, but serving, deploying, monitoring, and safely
 replacing it. This page is the tip of the iceberg.
 
@@ -422,8 +422,8 @@ raises an alarm when the world has shifted from what the model learned.
 You can see this live: upload a foreign dataset in the scan tab and watch
 the data health check fire.
 
-**6 — Safe retraining.** On drift, a *challenger* model is trained. It shadows
-production - scoring real traffic silently while the *champion* still makes
+**6 — Safe retraining.** On drift, a *challenger* model is trained. It runs in
+shadow mode - scoring simulated traffic silently while the *champion* still makes
 all decisions - and is **promoted only if measurably better**. This repo's
 model v2 replaced v1 exactly this way (PR-AUC 0.8817 > 0.8799).
         """
